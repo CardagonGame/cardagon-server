@@ -1,0 +1,11 @@
+[project]
+name = "cardagon-server"
+version = "1.0.0"
+dependencies = [
+  "fastapi[standard]==0.116.1",
+  "sqlmodel==0.0.24",
+  "pydantic-settings==2.10.1",
+]
+
+[tool.black]
+line-length = 88
