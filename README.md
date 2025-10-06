@@ -4,13 +4,20 @@ cardagon server
 
 ## Getting Started
 
+### Requirements
+- Python 3.13+
+- [uv](https://docs.astral.sh/uv/getting-started/installation)
+
 #### Setup
 ```bash
-python -m venv .venv
+# Create virtual environment (first time only)
+uv venv
 
+# Activate virtual environment
 source .venv/bin/activate
 
-pip install .
+# Install dependencies
+uv sync
 ```
 
 #### Run server
