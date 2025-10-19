@@ -1,8 +1,10 @@
 from fastapi import APIRouter
-import importlib.metadata
+import tomllib
 
 router = APIRouter(tags=["status"])
-version_string = importlib.metadata.version("cardagon-server")
+with open("pyproject.toml", "rb") as f:
+    d = tomllib.load(f)
+    version_string = d['project']['version']
 
 
 @router.get("/status")
