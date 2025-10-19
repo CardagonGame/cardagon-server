@@ -22,5 +22,5 @@ uv sync
 
 #### Run server
 ```bash
-fastapi dev main.py
+fastapi dev app/main.py
 ```
