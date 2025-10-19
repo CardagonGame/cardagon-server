@@ -2,9 +2,9 @@ from fastapi import APIRouter
 import tomllib
 
 router = APIRouter(tags=["status"])
-with open("pyproject.toml", "rb") as f:
-    d = tomllib.load(f)
-    version_string = d['project']['version']
+with open("pyproject.toml", "rb") as project_file:
+    project_dict = tomllib.load(project_file)
+    version_string = project_dict['project']['version']
 
 
 @router.get("/status")
