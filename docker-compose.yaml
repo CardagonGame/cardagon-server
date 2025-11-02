@@ -1,0 +1,26 @@
+services:
+  cardagon-server:
+    build: .
+    container_name: cardagon-server
+    ports:
+      - "8000:8000"
+    environment:
+      DB_CONNECTION_STRING: postgresql://cardagon:5RcBPgUL2IbKYGuE@cardagon-postgres:5432/cardagondb
+      INVITE_TOKEN: DEV_INVITE_TOKEN
+    depends_on:
+      - cardagon-postgres
+
+  cardagon-postgres:
+    image: postgres:18
+    container_name: cardagon-postgres
+    environment:
+      POSTGRES_PASSWORD: 5RcBPgUL2IbKYGuE
+      POSTGRES_USER: cardagon
+      POSTGRES_DB: cardagondb
+    ports:
+      - "5432:5432"
+    volumes:
+      - cardagon-pgdata:/var/lib/postgresql
+
+volumes:
+  cardagon-pgdata:

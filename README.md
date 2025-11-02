@@ -9,21 +9,38 @@ cardagon server
 - Python 3.13+
 - [uv](https://docs.astral.sh/uv/getting-started/installation)
 
-#### Setup
+### Setup
+
+Create virtual environment (first time only)
 
 ```bash
-# Create virtual environment (first time only)
 uv venv
+```
 
-# Activate virtual environment
+Activate virtual environment
+
+```bash
 source .venv/bin/activate
+```
 
-# Install dependencies
+Install dependencies
+
+```bash
 uv sync
 ```
 
-#### Run server
+### Run server
 
 ```bash
 fastapi dev app/main.py
 ```
+
+## Database Migrations
+
+After modifying the database models, create a new migration with:
+
+```bash
+alembic revision --autogenerate
+```
+
+Migrations will be automatically applied on server start.
