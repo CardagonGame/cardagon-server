@@ -1,8 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
-class BaseDTO(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+from . import BaseDTO
 
 
 class UserBase(BaseDTO):

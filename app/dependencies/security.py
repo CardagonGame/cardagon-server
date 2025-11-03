@@ -25,7 +25,10 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(*, user: User):
-    encode = {"sub": user.username, "id": str(user.id)}
+    encode = {
+        "sub": user.username,
+        "id": str(user.id),
+    }
     expire = datetime.now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     encode.update({"exp": expire})
     return jwt.encode(encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
