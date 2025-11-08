@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.dependencies import security
 
 from app.dependencies.db import SessionDep
+from app.dependencies.static import API_V1_PREFIX
 from app.dependencies.user import create_user, get_user_by_email, user_authenticate
 from app.dto.user import Token, UserCreate, UserPublic, UserRegister
 from app.settings import settings
@@ -14,9 +15,9 @@ from app.settings import settings
 router = APIRouter(tags=["auth"])
 
 
-@router.post("/signup")
+@router.post(f"{API_V1_PREFIX}/signup")
 def register_user(session: SessionDep, user_in: UserRegister) -> UserPublic:
-    if user_in.invite_code != settings.INVITE_TOKEN:
+    if user_in.invite_token != settings.INVITE_TOKEN:
         raise HTTPException(status_code=400, detail="Invalid invite code")
     user = get_user_by_email(session=session, email=user_in.email)
     if user:
@@ -37,7 +38,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> UserPublic:
     return user
 
 
-@router.post("/login/access-token")
+@router.post(f"{API_V1_PREFIX}/login/access-token")
 def login_access_token(
     session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:

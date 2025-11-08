@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.dependencies.db import SessionDep
+from app.dependencies.static import API_V1_PREFIX
 from app.dependencies.user import CurrentUserDep
 from app.dto.game import GamePublic
 from app.models import Game, UserGameAssociation
@@ -9,7 +10,7 @@ from app.models import Game, UserGameAssociation
 router = APIRouter(tags=["game"], prefix="/game")
 
 
-@router.post("/create")
+@router.post(f"{API_V1_PREFIX}/create")
 def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     """
     Create a new game.
@@ -37,7 +38,7 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     )
 
 
-@router.post("/join/{join_code}")
+@router.post(f"{API_V1_PREFIX}/join/{{join_code}}")
 def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> GamePublic:
     """
     Join an existing game using a join code.
