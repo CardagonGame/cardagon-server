@@ -19,18 +19,13 @@ from app.settings import settings
 TokenDep = Annotated[str, Depends(oauth2_password)]
 
 
-def user_authenticate(*, session: Session, username: str, password: str) -> User | None:
-    db_user = get_user_by_username(session=session, username=username)
+def user_authenticate(*, session: Session, email: str, password: str) -> User | None:
+    db_user = get_user_by_email(session=session, email=email)
     if not db_user:
         return None
     if not verify_password(password, db_user.password_hash):
         return None
     return db_user
-
-
-def get_user_by_username(*, session: Session, username: str) -> User | None:
-    session_user = session.query(User).filter(User.username == username).first()
-    return session_user
 
 
 def get_user_by_email(*, session: Session, email: str) -> User | None:
