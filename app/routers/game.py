@@ -7,10 +7,35 @@ from app.dto.game import GamePublic
 from app.models import Game, UserGameAssociation
 
 
-router = APIRouter(tags=["game"], prefix="/game")
+router = APIRouter(tags=["game"])
 
 
-@router.post(f"{API_V1_PREFIX}/create")
+@router.get(f"{API_V1_PREFIX}/game/{{game_id}}/basic-info")
+def get_game_basic_info(game_id: str, session: SessionDep) -> GamePublic:
+    """
+    Retrieve basic information about a game by its ID.
+    """
+
+    game = (
+        session.query(Game, UserGameAssociation)
+        .filter(Game.id == game_id)
+        .join(UserGameAssociation, UserGameAssociation.game_id == Game.id)
+        .first()
+    )
+
+    if not game:
+        return {"error": "Game not found."}
+
+    game_data, user_game_assoc = game
+
+    return GamePublic(
+        game_id=game_data.id,
+        join_code=game_data.join_code,
+        your_role=user_game_assoc.role,
+    )
+
+
+@router.post(f"{API_V1_PREFIX}/game/create")
 def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     """
     Create a new game.
@@ -38,7 +63,7 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     )
 
 
-@router.post(f"{API_V1_PREFIX}/join/{{join_code}}")
+@router.post(f"{API_V1_PREFIX}/game/join/{{join_code}}")
 def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> GamePublic:
     """
     Join an existing game using a join code.
