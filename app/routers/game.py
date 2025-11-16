@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, HTTPException
 
 from app.dependencies.db import SessionDep
 from app.dependencies.static import API_V1_PREFIX
@@ -24,7 +24,10 @@ def get_game_basic_info(game_id: str, session: SessionDep) -> GamePublic:
     )
 
     if not game:
-        return {"error": "Game not found."}
+        raise HTTPException(
+            status_code=404,
+            detail="Game not found.",
+        )
 
     game_data, user_game_assoc = game
 
@@ -69,8 +72,13 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
     """
 
     game_to_join = session.query(Game).filter(Game.join_code == join_code).first()
+    print(game_to_join)
     if not game_to_join:
-        return {"error": "Game not found."}
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid join code.",
+        )
+
     existing_association = (
         session.query(UserGameAssociation)
         .filter(

@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic_core import from_json, to_json
 
@@ -42,7 +43,7 @@ manager = ConnectionManager()
 
 @router.websocket(f"{API_V1_PREFIX}/game/{{game_id}}/ws")
 async def game_websocket_endpoint(
-    *, websocket: WebSocket, game_id: str, session: SessionDep, user: CurrentUserDep
+    websocket: WebSocket, game_id: str, session: SessionDep, user: CurrentUserDep
 ):
     user_connection = UserConnection(
         user_id=user.id,
