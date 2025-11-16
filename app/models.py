@@ -14,7 +14,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
     id: Mapped[str] = mapped_column(
-        CHAR(32), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
+        CHAR(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )
     email: Mapped[str] = mapped_column(
         String(255), unique=True, index=True, nullable=False
@@ -29,7 +29,7 @@ class User(Base):
 class Game(Base):
     __tablename__ = "games"
     id: Mapped[str] = mapped_column(
-        CHAR(32), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
+        CHAR(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )
     join_code: Mapped[str] = mapped_column(
         String(6),
@@ -46,10 +46,10 @@ class Game(Base):
 class UserGameAssociation(Base):
     __tablename__ = "user_game_associations"
     id: Mapped[str] = mapped_column(
-        CHAR(32), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
+        CHAR(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )
     user_id: Mapped[str] = mapped_column(
-        CHAR(32),
+        CHAR(36),
         ForeignKey(
             User.id,
             onupdate="CASCADE",
@@ -59,7 +59,7 @@ class UserGameAssociation(Base):
         nullable=False,
     )
     game_id: Mapped[str] = mapped_column(
-        CHAR(32),
+        CHAR(36),
         ForeignKey(
             Game.id,
             onupdate="CASCADE",
