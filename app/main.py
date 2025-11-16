@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app import game_logic
 from app.dependencies.db import check_db_connection, run_migrations
 from app.routers import auth, docs, game, status, user
 
@@ -26,5 +27,6 @@ app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(docs.router)
 app.include_router(game.router)
+app.include_router(game_logic.router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

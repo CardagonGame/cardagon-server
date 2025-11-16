@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, WebSocket
 
 from app.dependencies.db import SessionDep
 from app.dependencies.static import API_V1_PREFIX
@@ -40,7 +40,6 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     """
     Create a new game.
     """
-
     new_game = Game()
 
     session.add(new_game)
