@@ -1,0 +1,26 @@
+services:
+  cardagon-server-prod:
+    image: ghcr.io/cardagongame/cardagon-server
+    container_name: cardagon-server-prod
+    ports:
+      - "8000:8000"
+    environment:
+      DB_CONNECTION_STRING: postgresql://cardagon:5RcBPgUL2IbKYGuE@cardagon-postgres-prod:5432/cardagondb
+      INVITE_TOKEN: DEV_INVITE_TOKEN
+    depends_on:
+      - cardagon-postgres-prod
+
+  cardagon-postgres-prod:
+    image: postgres:18
+    container_name: cardagon-postgres-prod
+    environment:
+      POSTGRES_PASSWORD: 5RcBPgUL2IbKYGuE
+      POSTGRES_USER: cardagon
+      POSTGRES_DB: cardagondb
+    ports:
+      - "5432:5432"
+    volumes:
+      - cardagon-pgdata-prod:/var/lib/postgresql
+
+volumes:
+  cardagon-pgdata-prod:

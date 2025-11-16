@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.dependencies.db import check_db_connection, run_migrations
-from app.routers import auth, docs, status, user, game
+from app.routers import auth, docs, game, status, user
 
 with open("pyproject.toml", "rb") as project_file:
     project_dict = tomllib.load(project_file)
