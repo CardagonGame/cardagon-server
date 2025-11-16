@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Annotated
 
+from app.dependencies.static import API_V1_PREFIX
 import jwt
 
 from fastapi.security import OAuth2AuthorizationCodeBearer, OAuth2PasswordBearer
@@ -13,7 +14,7 @@ from app.settings import settings
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-oauth2_password = OAuth2PasswordBearer(tokenUrl=f"/login")
+oauth2_password = OAuth2PasswordBearer(tokenUrl=f"{API_V1_PREFIX}/login")
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
