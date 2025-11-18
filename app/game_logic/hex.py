@@ -5,3 +5,10 @@ class Hex():
         self.q = q
         self.r = r
         self.s = s
+        self.player = None
+    
+    def get_hex_info(self):
+        return self.__dict__
+
+    def set_player(self, player):
+        self.player = player
