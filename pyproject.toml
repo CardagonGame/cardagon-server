@@ -10,6 +10,7 @@ dependencies = [
   "psycopg2-binary==2.9.11",
   "alembic==1.17.1",
   "argon2_cffi==25.1.0",
+  "coolname>=5.0.0",
 ]
 requires-python = "==3.14.0"
 

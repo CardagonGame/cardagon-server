@@ -3,11 +3,33 @@ from fastapi import APIRouter, HTTPException
 from app.dependencies.db import SessionDep
 from app.dependencies.static import API_V1_PREFIX
 from app.dependencies.user import CurrentUserDep
-from app.dto.game import GamePublic
+from app.dto.game import GamePublic, UserGamesResponse
 from app.models import Game, UserGameAssociation
 
 
 router = APIRouter(tags=["game"])
+
+
+@router.get(f"{API_V1_PREFIX}/games")
+def get_user_games(session: SessionDep, user: CurrentUserDep) -> UserGamesResponse:
+    """
+    Return all games for the current user, split into hosted and joined.
+    """
+    rows = (
+        session.query(Game, UserGameAssociation)
+        .join(UserGameAssociation, UserGameAssociation.game_id == Game.id)
+        .filter(UserGameAssociation.user_id == user.id)
+        .all()
+    )
+
+    hosted: list[GamePublic] = []
+    joined: list[GamePublic] = []
+
+    for game, assoc in rows:
+        entry = GamePublic(game_id=game.id, join_code=game.join_code, your_role=assoc.role, date_created=game.date_created, name=game.name)
+        (hosted if assoc.role == "host" else joined).append(entry)
+
+    return UserGamesResponse(hosted=hosted, joined=joined)
 
 
 @router.get(f"{API_V1_PREFIX}/game/{{game_id}}/basic-info")
@@ -35,6 +57,8 @@ def get_game_basic_info(game_id: str, session: SessionDep) -> GamePublic:
         game_id=game_data.id,
         join_code=game_data.join_code,
         your_role=user_game_assoc.role,
+        date_created=game_data.date_created,
+        name=game_data.name,
     )
 
 
@@ -62,6 +86,8 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
         game_id=new_game.id,
         join_code=new_game.join_code,
         your_role=new_game_association.role,
+        date_created=new_game.date_created,
+        name=new_game.name,
     )
 
 
@@ -93,6 +119,8 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
             game_id=game_to_join.id,
             join_code=game_to_join.join_code,
             your_role=existing_association.role,
+            date_created=game_to_join.date_created,
+            name=game_to_join.name,
         )
 
     new_game_association = UserGameAssociation(
@@ -108,4 +136,6 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
         game_id=game_to_join.id,
         join_code=game_to_join.join_code,
         your_role=new_game_association.role,
+        date_created=game_to_join.date_created,
+        name=game_to_join.name,
     )

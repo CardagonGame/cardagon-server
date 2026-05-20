@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
+from coolname import generate_slug
 from sqlalchemy import CHAR, ForeignKey, ForeignKeyConstraint, MetaData, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -37,6 +38,9 @@ class Game(Base):
         index=True,
         nullable=False,
         default=lambda: str(uuid.uuid4())[:6].upper(),
+    )
+    name: Mapped[str] = mapped_column(
+        String(100), nullable=False, default=lambda: generate_slug(2).replace("-", " ")
     )
     date_created: Mapped[datetime] = mapped_column(
         nullable=False, default=datetime.now(timezone.utc)
