@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from app.dependencies.db import SessionDep
 from app.dependencies.static import API_V1_PREFIX
@@ -60,6 +60,30 @@ def get_game_basic_info(game_id: str, session: SessionDep) -> GamePublic:
         date_created=game_data.date_created,
         name=game_data.name,
     )
+
+
+@router.delete(f"{API_V1_PREFIX}/game/{{game_id}}", status_code=204)
+def delete_game(game_id: str, session: SessionDep, user: CurrentUserDep) -> Response:
+    assoc = (
+        session.query(UserGameAssociation)
+        .filter(
+            UserGameAssociation.game_id == game_id,
+            UserGameAssociation.user_id == user.id,
+        )
+        .first()
+    )
+
+    if not assoc:
+        raise HTTPException(status_code=404, detail="Game not found.")
+
+    if assoc.role != "host":
+        raise HTTPException(status_code=403, detail="Only the host can delete a game.")
+
+    game = session.query(Game).filter(Game.id == game_id).first()
+    session.delete(game)
+    session.commit()
+
+    return Response(status_code=204)
 
 
 @router.post(f"{API_V1_PREFIX}/game/create")
