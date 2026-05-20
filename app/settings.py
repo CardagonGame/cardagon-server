@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DB_CONNECTION_STRING: str = "sqlite:///./dev.db"
+    DB_CONNECTION_STRING: str = "postgresql://cardagon:5RcBPgUL2IbKYGuE@localhost:5432/cardagondb"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 525600  # 1 year
     SECRET_KEY: str = "REPLACE_ME_WITH_A_RANDOM_SECRET_KEY"
     JWT_ALGORITHM: str = "HS256"

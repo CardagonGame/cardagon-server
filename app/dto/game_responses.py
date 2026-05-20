@@ -10,6 +10,7 @@ class PlayerInfo(BaseDTO):
     user_id: str
     username: str
     role: str
+    online: bool = False
 
 
 class PlayersMessage(BaseDTO):

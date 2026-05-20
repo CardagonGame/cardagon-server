@@ -4,12 +4,11 @@ from sqlalchemy.orm import Session
 
 from app.dependencies.db import SessionDep
 from app.dependencies.static import API_V1_PREFIX
-from app.dependencies.user import CurrentUserDep, get_current_user
+from app.dependencies.user import get_current_user
 from app.dto.game_logic import UserConnection
 from app.dto.game_requests import ReadyRequest
 from app.dto.game_responses import PlayerInfo, PlayersMessage
 from app.models import User, UserGameAssociation
-
 
 router = APIRouter(tags=["game_router"])
 
@@ -25,7 +24,9 @@ class ConnectionManager:
     def disconnect(self, user_connection: UserConnection):
         self.active_connections.remove(user_connection)
 
-    async def send_personal_message(self, message: str, user_connection: UserConnection):
+    async def send_personal_message(
+        self, message: str, user_connection: UserConnection
+    ):
         await user_connection.websocket.send_text(message)
 
     async def broadcast(self, game_id: str, message: str):
@@ -44,9 +45,15 @@ def get_players(game_id: str, session: Session) -> PlayersMessage:
         .filter(UserGameAssociation.game_id == game_id)
         .all()
     )
+    online_ids = {c.user_id for c in manager.active_connections if c.game_id == game_id}
     return PlayersMessage(
         players=[
-            PlayerInfo(user_id=user.id, username=user.username, role=assoc.role)
+            PlayerInfo(
+                user_id=user.id,
+                username=user.username,
+                role=assoc.role,
+                online=user.id in online_ids,
+            )
             for user, assoc in rows
         ]
     )
@@ -66,17 +73,19 @@ async def game_websocket_endpoint(
         websocket=websocket,
     )
     await manager.connect(user_connection)
-    await manager.send_personal_message(
-        get_players(game_id, session).model_dump_json(),
-        user_connection,
-    )
+    await manager.broadcast(game_id, get_players(game_id, session).model_dump_json())
     try:
         while True:
             data = await websocket.receive_text()
             parsed_data = from_json(data)
             match parsed_data.get("type"):
+                case "ping":
+                    await manager.send_personal_message(
+                        '{"type":"pong"}',
+                        user_connection,
+                    )
                 case "ready":
-                    client_request = ReadyRequest.model_validate(parsed_data)
+                    ReadyRequest.model_validate(parsed_data)
                     await manager.send_personal_message(
                         "You are ready!",
                         user_connection,

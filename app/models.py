@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from coolname import generate_slug
-from sqlalchemy import CHAR, ForeignKey, ForeignKeyConstraint, MetaData, String
+from sqlalchemy import CHAR, ForeignKey, MetaData, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 metadata_obj = MetaData()
@@ -73,5 +73,7 @@ class UserGameAssociation(Base):
         nullable=False,
     )
     role: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="player"  # player or host
+        String(20),
+        nullable=False,
+        default="player",  # player or host
     )

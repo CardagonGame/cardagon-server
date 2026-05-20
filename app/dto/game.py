@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from . import BaseDTO
+from app.dto.game_responses import PlayerInfo
 
 
 class GamePublic(BaseDTO):
@@ -9,6 +10,10 @@ class GamePublic(BaseDTO):
     your_role: str
     date_created: datetime
     name: str
+
+
+class GameDetailResponse(GamePublic):
+    players: list[PlayerInfo]
 
 
 class UserGamesResponse(BaseDTO):

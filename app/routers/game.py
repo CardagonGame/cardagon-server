@@ -3,7 +3,8 @@ from fastapi import APIRouter, HTTPException, Response
 from app.dependencies.db import SessionDep
 from app.dependencies.static import API_V1_PREFIX
 from app.dependencies.user import CurrentUserDep
-from app.dto.game import GamePublic, UserGamesResponse
+from app.dto.game import GameDetailResponse, GamePublic, UserGamesResponse
+from app.routers.game_logic import get_players
 from app.models import Game, UserGameAssociation
 
 
@@ -33,9 +34,9 @@ def get_user_games(session: SessionDep, user: CurrentUserDep) -> UserGamesRespon
 
 
 @router.get(f"{API_V1_PREFIX}/game/{{game_id}}/basic-info")
-def get_game_basic_info(game_id: str, session: SessionDep) -> GamePublic:
+def get_game_basic_info(game_id: str, session: SessionDep) -> GameDetailResponse:
     """
-    Retrieve basic information about a game by its ID.
+    Retrieve basic information about a game by its ID, including the current player list.
     """
 
     game = (
@@ -53,12 +54,13 @@ def get_game_basic_info(game_id: str, session: SessionDep) -> GamePublic:
 
     game_data, user_game_assoc = game
 
-    return GamePublic(
+    return GameDetailResponse(
         game_id=game_data.id,
         join_code=game_data.join_code,
         your_role=user_game_assoc.role,
         date_created=game_data.date_created,
         name=game_data.name,
+        players=get_players(game_id, session).players,
     )
 
 
