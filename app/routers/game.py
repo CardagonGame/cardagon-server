@@ -43,15 +43,15 @@ def get_user_games(session: SessionDep, user: CurrentUserDep) -> UserGamesRespon
 
 
 @router.get(f"{API_V1_PREFIX}/game/{{game_id}}/basic-info")
-def get_game_basic_info(game_id: str, session: SessionDep) -> GameDetailResponse:
+def get_game_basic_info(game_id: str, session: SessionDep, user: CurrentUserDep) -> GameDetailResponse:
     """
     Retrieve basic information about a game by its ID, including the current player list.
     """
 
     game = (
         session.query(Game, UserGameAssociation)
-        .filter(Game.id == game_id)
         .join(UserGameAssociation, UserGameAssociation.game_id == Game.id)
+        .filter(Game.id == game_id, UserGameAssociation.user_id == user.id)
         .first()
     )
 
@@ -71,6 +71,29 @@ def get_game_basic_info(game_id: str, session: SessionDep) -> GameDetailResponse
         name=game_data.name,
         players=get_players(game_id, session).players,
     )
+
+
+@router.delete(f"{API_V1_PREFIX}/game/{{game_id}}/leave", status_code=204)
+def leave_game(game_id: str, session: SessionDep, user: CurrentUserDep) -> Response:
+    assoc = (
+        session.query(UserGameAssociation)
+        .filter(
+            UserGameAssociation.game_id == game_id,
+            UserGameAssociation.user_id == user.id,
+        )
+        .first()
+    )
+
+    if not assoc:
+        raise HTTPException(status_code=404, detail="Game not found.")
+
+    if assoc.role == "host":
+        raise HTTPException(status_code=403, detail="The host cannot leave. Delete the game instead.")
+
+    session.delete(assoc)
+    session.commit()
+
+    return Response(status_code=204)
 
 
 @router.delete(f"{API_V1_PREFIX}/game/{{game_id}}", status_code=204)
