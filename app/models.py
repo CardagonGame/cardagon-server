@@ -25,7 +25,6 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     is_admin: Mapped[bool] = mapped_column(default=False, nullable=False)
-    ForeignKey("")
 
 
 class Game(Base):
@@ -44,7 +43,7 @@ class Game(Base):
         String(100), nullable=False, default=lambda: generate_slug(2).replace("-", " ")
     )
     date_created: Mapped[datetime] = mapped_column(
-        nullable=False, default=datetime.now(timezone.utc)
+        nullable=False, default=lambda: datetime.now(timezone.utc)
     )
 
 
@@ -80,7 +79,7 @@ class GameEvent(Base):
         JSONB, nullable=False, default=dict, server_default="{}"
     )
     date_created: Mapped[datetime] = mapped_column(
-        nullable=False, default=datetime.now(timezone.utc)
+        nullable=False, default=lambda: datetime.now(timezone.utc)
     )
 
 
@@ -115,5 +114,5 @@ class UserGameAssociation(Base):
         default="player",  # player or host
     )
     date_created: Mapped[datetime] = mapped_column(
-        nullable=False, default=datetime.now(timezone.utc)
+        nullable=False, default=lambda: datetime.now(timezone.utc)
     )
