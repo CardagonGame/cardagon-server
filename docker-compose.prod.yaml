@@ -7,6 +7,7 @@ services:
     environment:
       DB_CONNECTION_STRING: postgresql://cardagon:5RcBPgUL2IbKYGuE@cardagon-postgres-prod:5432/cardagondb
       INVITE_TOKEN: DEV_INVITE_TOKEN
+      SECRET_KEY: 12725da8f93b82fc1bd1da275b49a8fe
     depends_on:
       - cardagon-postgres-prod
 

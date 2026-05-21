@@ -97,6 +97,17 @@ async def game_websocket_endpoint(
     except HTTPException:
         await websocket.close(code=4003)
         return
+    association = (
+        session.query(UserGameAssociation)
+        .filter(
+            UserGameAssociation.user_id == user.id,
+            UserGameAssociation.game_id == game_id,
+        )
+        .first()
+    )
+    if not association:
+        await websocket.close(code=4003)
+        return
     user_connection = UserConnection(
         user_id=user.id,
         game_id=game_id,
