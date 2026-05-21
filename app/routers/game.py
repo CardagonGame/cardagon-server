@@ -11,6 +11,16 @@ from app.models import Game, UserGameAssociation
 router = APIRouter(tags=["game"])
 
 
+def _game_to_public(game: Game, assoc: UserGameAssociation) -> GamePublic:
+    return GamePublic(
+        game_id=game.id,
+        join_code=game.join_code,
+        your_role=assoc.role,
+        date_created=game.date_created,
+        name=game.name,
+    )
+
+
 @router.get(f"{API_V1_PREFIX}/games")
 def get_user_games(session: SessionDep, user: CurrentUserDep) -> UserGamesResponse:
     """
@@ -27,8 +37,7 @@ def get_user_games(session: SessionDep, user: CurrentUserDep) -> UserGamesRespon
     joined: list[GamePublic] = []
 
     for game, assoc in rows:
-        entry = GamePublic(game_id=game.id, join_code=game.join_code, your_role=assoc.role, date_created=game.date_created, name=game.name)
-        (hosted if assoc.role == "host" else joined).append(entry)
+        (hosted if assoc.role == "host" else joined).append(_game_to_public(game, assoc))
 
     return UserGamesResponse(hosted=hosted, joined=joined)
 
@@ -94,10 +103,8 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     Create a new game.
     """
     new_game = Game()
-
     session.add(new_game)
-    session.commit()
-    session.refresh(new_game)
+    session.flush()
 
     new_game_association = UserGameAssociation(
         user_id=user.id,
@@ -106,15 +113,10 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     )
     session.add(new_game_association)
     session.commit()
+    session.refresh(new_game)
     session.refresh(new_game_association)
 
-    return GamePublic(
-        game_id=new_game.id,
-        join_code=new_game.join_code,
-        your_role=new_game_association.role,
-        date_created=new_game.date_created,
-        name=new_game.name,
-    )
+    return _game_to_public(new_game, new_game_association)
 
 
 @router.post(f"{API_V1_PREFIX}/game/join/{{join_code}}")
@@ -124,7 +126,6 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
     """
 
     game_to_join = session.query(Game).filter(Game.join_code == join_code).first()
-    print(game_to_join)
     if not game_to_join:
         raise HTTPException(
             status_code=400,
@@ -141,13 +142,7 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
     )
 
     if existing_association:
-        return GamePublic(
-            game_id=game_to_join.id,
-            join_code=game_to_join.join_code,
-            your_role=existing_association.role,
-            date_created=game_to_join.date_created,
-            name=game_to_join.name,
-        )
+        return _game_to_public(game_to_join, existing_association)
 
     new_game_association = UserGameAssociation(
         user_id=user.id,
@@ -158,10 +153,4 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
     session.commit()
     session.refresh(new_game_association)
 
-    return GamePublic(
-        game_id=game_to_join.id,
-        join_code=game_to_join.join_code,
-        your_role=new_game_association.role,
-        date_created=game_to_join.date_created,
-        name=game_to_join.name,
-    )
+    return _game_to_public(game_to_join, new_game_association)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic_core import from_json
 from sqlalchemy.orm import Session
 
@@ -43,13 +43,17 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-def get_players(game_id: str, session: Session) -> PlayersMessage:
-    rows = (
+def _fetch_player_rows(game_id: str, session: Session):
+    return (
         session.query(User, UserGameAssociation)
         .join(UserGameAssociation, UserGameAssociation.user_id == User.id)
         .filter(UserGameAssociation.game_id == game_id)
         .all()
     )
+
+
+def get_players(game_id: str, session: Session) -> PlayersMessage:
+    rows = _fetch_player_rows(game_id, session)
     online_ids = {c.user_id for c in manager.active_connections if c.game_id == game_id}
     return PlayersMessage(
         players=[
@@ -65,12 +69,7 @@ def get_players(game_id: str, session: Session) -> PlayersMessage:
 
 
 def get_ws_players(game_id: str, session: Session) -> WsPlayersMessage:
-    rows = (
-        session.query(User, UserGameAssociation)
-        .join(UserGameAssociation, UserGameAssociation.user_id == User.id)
-        .filter(UserGameAssociation.game_id == game_id)
-        .all()
-    )
+    rows = _fetch_player_rows(game_id, session)
     conns = {c.user_id: c for c in manager.active_connections if c.game_id == game_id}
     return WsPlayersMessage(
         players=[
@@ -93,7 +92,11 @@ async def game_websocket_endpoint(
     session: SessionDep,
     token: str = Query(...),
 ):
-    user = get_current_user(session=session, token=token)
+    try:
+        user = get_current_user(session=session, token=token)
+    except HTTPException:
+        await websocket.close(code=4003)
+        return
     user_connection = UserConnection(
         user_id=user.id,
         game_id=game_id,

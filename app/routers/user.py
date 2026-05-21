@@ -13,5 +13,4 @@ def read_user_me(user: CurrentUserDep) -> UserPublic:
     """
     Get current user.
     """
-    print("Current user:", user)
     return user
