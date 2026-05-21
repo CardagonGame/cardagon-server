@@ -16,3 +16,12 @@ class PlayerInfo(BaseDTO):
 class PlayersMessage(BaseDTO):
     type: str = "players"
     players: list[PlayerInfo]
+
+
+class WsPlayerInfo(PlayerInfo):
+    ping_ms: int | None = None
+
+
+class WsPlayersMessage(BaseDTO):
+    type: str = "players"
+    players: list[WsPlayerInfo]

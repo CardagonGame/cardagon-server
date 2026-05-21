@@ -7,7 +7,12 @@ from app.dependencies.static import API_V1_PREFIX
 from app.dependencies.user import get_current_user
 from app.dto.game_logic import UserConnection
 from app.dto.game_requests import ReadyRequest
-from app.dto.game_responses import PlayerInfo, PlayersMessage
+from app.dto.game_responses import (
+    PlayerInfo,
+    PlayersMessage,
+    WsPlayerInfo,
+    WsPlayersMessage,
+)
 from app.models import User, UserGameAssociation
 
 router = APIRouter(tags=["game_router"])
@@ -59,6 +64,28 @@ def get_players(game_id: str, session: Session) -> PlayersMessage:
     )
 
 
+def get_ws_players(game_id: str, session: Session) -> WsPlayersMessage:
+    rows = (
+        session.query(User, UserGameAssociation)
+        .join(UserGameAssociation, UserGameAssociation.user_id == User.id)
+        .filter(UserGameAssociation.game_id == game_id)
+        .all()
+    )
+    conns = {c.user_id: c for c in manager.active_connections if c.game_id == game_id}
+    return WsPlayersMessage(
+        players=[
+            WsPlayerInfo(
+                user_id=user.id,
+                username=user.username,
+                role=assoc.role,
+                online=user.id in conns,
+                ping_ms=conns[user.id].ping_ms if user.id in conns else None,
+            )
+            for user, assoc in rows
+        ]
+    )
+
+
 @router.websocket(f"{API_V1_PREFIX}/game/{{game_id}}/ws")
 async def game_websocket_endpoint(
     websocket: WebSocket,
@@ -73,7 +100,7 @@ async def game_websocket_endpoint(
         websocket=websocket,
     )
     await manager.connect(user_connection)
-    await manager.broadcast(game_id, get_players(game_id, session).model_dump_json())
+    await manager.broadcast(game_id, get_ws_players(game_id, session).model_dump_json())
     try:
         while True:
             data = await websocket.receive_text()
@@ -84,6 +111,13 @@ async def game_websocket_endpoint(
                         '{"type":"pong"}',
                         user_connection,
                     )
+                case "ping_result":
+                    ms = parsed_data.get("ms")
+                    if isinstance(ms, int):
+                        user_connection.ping_ms = ms
+                        await manager.broadcast(
+                            game_id, get_ws_players(game_id, session).model_dump_json()
+                        )
                 case "ready":
                     ReadyRequest.model_validate(parsed_data)
                     await manager.send_personal_message(
@@ -95,5 +129,5 @@ async def game_websocket_endpoint(
         manager.disconnect(user_connection)
         await manager.broadcast(
             game_id,
-            get_players(game_id, session).model_dump_json(),
+            get_ws_players(game_id, session).model_dump_json(),
         )

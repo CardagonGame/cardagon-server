@@ -10,3 +10,4 @@ class UserConnection(BaseDTO):
     user_id: str
     game_id: str
     websocket: WebSocket
+    ping_ms: int | None = None
