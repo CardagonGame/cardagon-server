@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime, timezone
 
 from coolname import generate_slug
-from sqlalchemy import CHAR, ForeignKey, MetaData, String
+from sqlalchemy import CHAR, ForeignKey, Integer, MetaData, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 metadata_obj = MetaData()
@@ -47,6 +48,42 @@ class Game(Base):
     )
 
 
+class GameEvent(Base):
+    __tablename__ = "game_events"
+    id: Mapped[str] = mapped_column(
+        CHAR(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
+    )
+    game_id: Mapped[str] = mapped_column(
+        CHAR(36),
+        ForeignKey(
+            Game.id,
+            onupdate="CASCADE",
+            ondelete="CASCADE",
+            name="fk_game_events_game",
+        ),
+        nullable=False,
+    )
+    sequence_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    turn_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[str | None] = mapped_column(
+        CHAR(36),
+        ForeignKey(
+            User.id,
+            onupdate="CASCADE",
+            ondelete="SET NULL",
+            name="fk_game_events_user",
+        ),
+        nullable=True,
+    )
+    type: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default="{}"
+    )
+    date_created: Mapped[datetime] = mapped_column(
+        nullable=False, default=datetime.now(timezone.utc)
+    )
+
+
 class UserGameAssociation(Base):
     __tablename__ = "user_game_associations"
     id: Mapped[str] = mapped_column(
@@ -76,4 +113,7 @@ class UserGameAssociation(Base):
         String(20),
         nullable=False,
         default="player",  # player or host
+    )
+    date_created: Mapped[datetime] = mapped_column(
+        nullable=False, default=datetime.now(timezone.utc)
     )
