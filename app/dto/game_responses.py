@@ -6,6 +6,11 @@ class UserGameStateResponse(BaseDTO):
     field_radius: int
 
 
+class GameState(BaseDTO):
+    type: str = "game_state"
+    started: bool = False
+
+
 class PlayerInfo(BaseDTO):
     user_id: str
     username: str

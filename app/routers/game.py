@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, Response
 
 from app.dependencies.db import SessionDep
+from app.dependencies.game_logic import get_players
 from app.dependencies.static import API_V1_PREFIX
 from app.dependencies.user import CurrentUserDep
 from app.dto.game import GameDetailResponse, GamePublic, UserGamesResponse
-from app.routers.game_logic import get_players
 from app.models import Game, UserGameAssociation
-
 
 router = APIRouter(tags=["game"])
 
@@ -37,13 +36,17 @@ def get_user_games(session: SessionDep, user: CurrentUserDep) -> UserGamesRespon
     joined: list[GamePublic] = []
 
     for game, assoc in rows:
-        (hosted if assoc.role == "host" else joined).append(_game_to_public(game, assoc))
+        (hosted if assoc.role == "host" else joined).append(
+            _game_to_public(game, assoc)
+        )
 
     return UserGamesResponse(hosted=hosted, joined=joined)
 
 
 @router.get(f"{API_V1_PREFIX}/game/{{game_id}}/basic-info")
-def get_game_basic_info(game_id: str, session: SessionDep, user: CurrentUserDep) -> GameDetailResponse:
+def get_game_basic_info(
+    game_id: str, session: SessionDep, user: CurrentUserDep
+) -> GameDetailResponse:
     """
     Retrieve basic information about a game by its ID, including the current player list.
     """
@@ -88,7 +91,9 @@ def leave_game(game_id: str, session: SessionDep, user: CurrentUserDep) -> Respo
         raise HTTPException(status_code=404, detail="Game not found.")
 
     if assoc.role == "host":
-        raise HTTPException(status_code=403, detail="The host cannot leave. Delete the game instead.")
+        raise HTTPException(
+            status_code=403, detail="The host cannot leave. Delete the game instead."
+        )
 
     session.delete(assoc)
     session.commit()
