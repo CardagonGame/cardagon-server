@@ -9,6 +9,7 @@ class UserGameStateResponse(BaseDTO):
 class GameState(BaseDTO):
     type: str = "game_state"
     started: bool = False
+    field_size: int | None = None
 
 
 class PlayerInfo(BaseDTO):

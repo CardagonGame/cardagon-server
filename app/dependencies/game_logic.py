@@ -86,6 +86,8 @@ def build_game_state(events: list[GameEvent]) -> GameState:
         match event.type:
             case "game_start":
                 state.started = True
+            case "field_init":
+                state.field_size = event.payload.get("field_size")
     return state
 
 

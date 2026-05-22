@@ -5,7 +5,8 @@ from app.dependencies.game_logic import get_players
 from app.dependencies.static import API_V1_PREFIX
 from app.dependencies.user import CurrentUserDep
 from app.dto.game import GameDetailResponse, GamePublic, UserGamesResponse
-from app.models import Game, UserGameAssociation
+from app.game_logic.game_defaults import DEFAULT_FIELD_INIT_PAYLOAD
+from app.models import Game, GameEvent, UserGameAssociation
 
 router = APIRouter(tags=["game"])
 
@@ -140,6 +141,16 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
         role="host",
     )
     session.add(new_game_association)
+
+    field_event = GameEvent(
+        game_id=new_game.id,
+        sequence_number=1,
+        turn_number=0,
+        user_id=user.id,
+        type="field_init",
+        payload=DEFAULT_FIELD_INIT_PAYLOAD,
+    )
+    session.add(field_event)
     session.commit()
     session.refresh(new_game)
     session.refresh(new_game_association)
