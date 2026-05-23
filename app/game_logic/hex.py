@@ -1,3 +1,5 @@
+def hex_distance(q1: int, r1: int, s1: int, q2: int, r2: int, s2: int) -> int:
+    return (abs(q1 - q2) + abs(r1 - r2) + abs(s1 - s2)) // 2
 
 
 class Hex():

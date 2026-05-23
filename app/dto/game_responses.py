@@ -6,10 +6,18 @@ class UserGameStateResponse(BaseDTO):
     field_radius: int
 
 
+class StartPosition(BaseDTO):
+    user_id: str
+    q: int
+    r: int
+    s: int
+
+
 class GameState(BaseDTO):
     type: str = "game_state"
     started: bool = False
     field_size: int | None = None
+    start_positions: list[StartPosition] = []
 
 
 class PlayerInfo(BaseDTO):

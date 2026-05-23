@@ -8,9 +8,11 @@ from app.dto.game_responses import (
     GameState,
     PlayerInfo,
     PlayersMessage,
+    StartPosition,
     WsPlayerInfo,
     WsPlayersMessage,
 )
+from app.game_logic.board import generate_start_positions
 from app.dto.user import UserPublic
 from app.models import GameEvent, User, UserGameAssociation
 
@@ -88,6 +90,16 @@ def build_game_state(events: list[GameEvent]) -> GameState:
                 state.started = True
             case "field_init":
                 state.field_size = event.payload.get("field_size")
+            case "player_start_position":
+                if event.user_id is not None:
+                    state.start_positions.append(
+                        StartPosition(
+                            user_id=event.user_id,
+                            q=event.payload["q"],
+                            r=event.payload["r"],
+                            s=event.payload["s"],
+                        )
+                    )
     return state
 
 
@@ -143,19 +155,73 @@ async def run_game_websocket(
                             user_connection,
                         )
                         continue
+                    already_started = (
+                        session.query(GameEvent)
+                        .filter(
+                            GameEvent.game_id == game_id,
+                            GameEvent.type == "game_start",
+                        )
+                        .first()
+                    )
+                    if already_started:
+                        await manager.send_personal_message(
+                            '{"type":"error","message":"game already started"}',
+                            user_connection,
+                        )
+                        continue
+                    field_init_event = (
+                        session.query(GameEvent)
+                        .filter(
+                            GameEvent.game_id == game_id,
+                            GameEvent.type == "field_init",
+                        )
+                        .first()
+                    )
+                    field_size = (
+                        field_init_event.payload.get("field_size", 5)
+                        if field_init_event
+                        else 5
+                    )
+                    player_rows = _fetch_player_rows(game_id, session)
+                    player_ids = [
+                        game_association.user_id
+                        for _, game_association in player_rows
+                    ]
+                    try:
+                        positions = generate_start_positions(field_size, len(player_ids))
+                    except ValueError as exc:
+                        await manager.send_personal_message(
+                            f'{{"type":"error","message":"{exc}"}}',
+                            user_connection,
+                        )
+                        continue
                     last_seq = (
                         session.query(func.max(GameEvent.sequence_number))
                         .filter(GameEvent.game_id == game_id)
                         .scalar()
                     ) or 0
-                    event = GameEvent(
-                        game_id=game_id,
-                        sequence_number=last_seq + 1,
-                        turn_number=0,
-                        user_id=user.id,
-                        type="game_start",
+                    session.add(
+                        GameEvent(
+                            game_id=game_id,
+                            sequence_number=last_seq + 1,
+                            turn_number=0,
+                            user_id=user.id,
+                            type="game_start",
+                        )
                     )
-                    session.add(event)
+                    for seq_offset, (player_id, (q, r, s)) in enumerate(
+                        zip(player_ids, positions), start=2
+                    ):
+                        session.add(
+                            GameEvent(
+                                game_id=game_id,
+                                sequence_number=last_seq + seq_offset,
+                                turn_number=0,
+                                user_id=player_id,
+                                type="player_start_position",
+                                payload={"q": q, "r": r, "s": s},
+                            )
+                        )
                     session.commit()
                     await manager.broadcast(game_id, '{"type":"game_start"}')
     except WebSocketDisconnect:
