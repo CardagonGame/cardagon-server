@@ -15,7 +15,9 @@ router = APIRouter(tags=["game"])
 
 
 def _pick_player_color(existing_hex_colors: list[str]) -> str:
-    existing_rgb = [(1.0, 1.0, 1.0)] + [hex_to_rgb(c) for c in existing_hex_colors]
+    existing_rgb = [(1.0, 1.0, 1.0), (0, 0, 0)] + [
+        hex_to_rgb(c) for c in existing_hex_colors
+    ]
     r, g, b = distinctipy.get_colors(1, existing_rgb, pastel_factor=0)[0]
     return rgb_to_hex(r, g, b)
 

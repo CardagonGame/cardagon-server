@@ -24,19 +24,30 @@ def generate_start_positions(
             f"Cannot place {player_count} players: only {len(valid_hexes)} valid hexes."
         )
 
+    best = None
+    best_score = -1
+
     for _ in range(max_attempts):
         random.shuffle(valid_hexes)
-        chosen_positions = []
+        chosen = []
         for candidate in valid_hexes:
-            far_enough = all(
-                hex_distance(*candidate, *existing) >= 3
-                for existing in chosen_positions
-            )
-            if far_enough:
-                chosen_positions.append(candidate)
-            if len(chosen_positions) == player_count:
-                return chosen_positions
+            if all(hex_distance(*candidate, *ex) >= 3 for ex in chosen):
+                chosen.append(candidate)
+            if len(chosen) == player_count:
+                break
 
+        if len(chosen) == player_count:
+            score = min(
+                hex_distance(*a, *b)
+                for i, a in enumerate(chosen)
+                for b in chosen[i + 1 :]
+            )
+            if score > best_score:
+                best_score = score
+                best = chosen
+
+    if best:
+        return best
     raise ValueError(
         f"Could not find {player_count} valid start positions after {max_attempts} attempts."
     )
