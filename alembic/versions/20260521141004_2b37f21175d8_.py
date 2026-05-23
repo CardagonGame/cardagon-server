@@ -39,7 +39,9 @@ def upgrade() -> None:
                existing_type=sa.CHAR(length=32),
                type_=sa.CHAR(length=36),
                existing_nullable=False)
-    op.add_column('user_game_associations', sa.Column('date_created', sa.DateTime(), nullable=False))
+    op.add_column('user_game_associations', sa.Column('date_created', sa.DateTime(), nullable=True))
+    op.execute("UPDATE user_game_associations SET date_created = NOW() WHERE date_created IS NULL")
+    op.alter_column('user_game_associations', 'date_created', nullable=False)
     op.alter_column('user_game_associations', 'id',
                existing_type=sa.CHAR(length=32),
                type_=sa.CHAR(length=36),
