@@ -33,7 +33,7 @@ def get_user_by_email(*, session: Session, email: str) -> User | None:
     return session_user
 
 
-def create_user(*, session: Session, user_create: UserCreate) -> User:
+def create_user(*, session: Session, user_create: UserCreate) -> UserPublic:
     db_obj = User(
         email=user_create.email,
         username=user_create.username,

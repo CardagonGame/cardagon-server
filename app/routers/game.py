@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Response
+from sqlalchemy import func
 
 from app.dependencies.db import SessionDep
 from app.dependencies.game_logic import get_players
@@ -11,13 +12,20 @@ from app.models import Game, GameEvent, UserGameAssociation
 router = APIRouter(tags=["game"])
 
 
-def _game_to_public(game: Game, assoc: UserGameAssociation) -> GamePublic:
+def _game_to_public(
+    game: Game,
+    assoc: UserGameAssociation,
+    started: bool = False,
+    current_turn: int = 0,
+) -> GamePublic:
     return GamePublic(
         game_id=game.id,
         join_code=game.join_code,
         your_role=assoc.role,
         date_created=game.date_created,
         name=game.name,
+        started=started,
+        current_turn=current_turn,
     )
 
 
@@ -33,12 +41,39 @@ def get_user_games(session: SessionDep, user: CurrentUserDep) -> UserGamesRespon
         .all()
     )
 
+    game_ids = [game.id for game, _ in rows]
+
+    turn_map: dict[str, int] = {}
+    started_set: set[str] = set()
+
+    if game_ids:
+        turn_rows = (
+            session.query(GameEvent.game_id, func.max(GameEvent.turn_number))
+            .filter(GameEvent.game_id.in_(game_ids))
+            .group_by(GameEvent.game_id)
+            .all()
+        )
+        turn_map = {gid: max_turn for gid, max_turn in turn_rows}
+
+        started_rows = (
+            session.query(GameEvent.game_id)
+            .filter(GameEvent.game_id.in_(game_ids), GameEvent.type == "game_start")
+            .distinct()
+            .all()
+        )
+        started_set = {gid for (gid,) in started_rows}
+
     hosted: list[GamePublic] = []
     joined: list[GamePublic] = []
 
     for game, assoc in rows:
         (hosted if assoc.role == "host" else joined).append(
-            _game_to_public(game, assoc)
+            _game_to_public(
+                game,
+                assoc,
+                started=game.id in started_set,
+                current_turn=turn_map.get(game.id, 0),
+            )
         )
 
     return UserGamesResponse(hosted=hosted, joined=joined)
@@ -182,6 +217,20 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
 
     if existing_association:
         return _game_to_public(game_to_join, existing_association)
+
+    game_started = (
+        session.query(GameEvent)
+        .filter(
+            GameEvent.game_id == game_to_join.id,
+            GameEvent.type == "game_start",
+        )
+        .first()
+    )
+    if game_started:
+        raise HTTPException(
+            status_code=403,
+            detail="game_already_started",
+        )
 
     new_game_association = UserGameAssociation(
         user_id=user.id,

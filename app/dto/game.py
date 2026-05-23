@@ -10,6 +10,8 @@ class GamePublic(BaseDTO):
     your_role: str
     date_created: datetime
     name: str
+    started: bool = False
+    current_turn: int = 0
 
 
 class GameDetailResponse(GamePublic):
