@@ -113,6 +113,7 @@ class UserGameAssociation(Base):
         nullable=False,
         default="player",  # player or host
     )
+    color: Mapped[str] = mapped_column(String(7), nullable=False, default="#000000")
     date_created: Mapped[datetime] = mapped_column(
         nullable=False, default=lambda: datetime.now(timezone.utc)
     )

@@ -1,6 +1,8 @@
+import distinctipy
 from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import func
 
+from app.dependencies.colors import hex_to_rgb, rgb_to_hex
 from app.dependencies.db import SessionDep
 from app.dependencies.game_logic import get_players
 from app.dependencies.static import API_V1_PREFIX
@@ -10,6 +12,12 @@ from app.game_logic.game_defaults import DEFAULT_FIELD_INIT_PAYLOAD
 from app.models import Game, GameEvent, UserGameAssociation
 
 router = APIRouter(tags=["game"])
+
+
+def _pick_player_color(existing_hex_colors: list[str]) -> str:
+    existing_rgb = [(1.0, 1.0, 1.0)] + [hex_to_rgb(c) for c in existing_hex_colors]
+    r, g, b = distinctipy.get_colors(1, existing_rgb, pastel_factor=0)[0]
+    return rgb_to_hex(r, g, b)
 
 
 def _game_to_public(
@@ -174,6 +182,7 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
         user_id=user.id,
         game_id=new_game.id,
         role="host",
+        color=_pick_player_color([]),
     )
     session.add(new_game_association)
 
@@ -232,10 +241,17 @@ def join_game(join_code: str, session: SessionDep, user: CurrentUserDep) -> Game
             detail="game_already_started",
         )
 
+    existing_colors = [
+        a.color
+        for a in session.query(UserGameAssociation)
+        .filter(UserGameAssociation.game_id == game_to_join.id)
+        .all()
+    ]
     new_game_association = UserGameAssociation(
         user_id=user.id,
         game_id=game_to_join.id,
         role="player",
+        color=_pick_player_color(existing_colors),
     )
     session.add(new_game_association)
     session.commit()

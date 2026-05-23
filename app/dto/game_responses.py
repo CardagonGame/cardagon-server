@@ -25,6 +25,7 @@ class PlayerInfo(BaseDTO):
     username: str
     role: str
     online: bool = False
+    color: str
 
 
 class PlayersMessage(BaseDTO):

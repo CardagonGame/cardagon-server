@@ -29,12 +29,22 @@ class ConnectionManager:
         self.active_connections.remove(user_connection)
 
     async def send_personal_message(self, message: str, user_connection: UserConnection):
-        await user_connection.websocket.send_text(message)
+        try:
+            await user_connection.websocket.send_text(message)
+        except RuntimeError:
+            self.active_connections.remove(user_connection)
 
     async def broadcast(self, game_id: str, message: str):
+        dead = []
         for connection in self.active_connections:
             if connection.game_id == game_id:
-                await connection.websocket.send_text(message)
+                try:
+                    await connection.websocket.send_text(message)
+                except RuntimeError:
+                    dead.append(connection)
+        for connection in dead:
+            if connection in self.active_connections:
+                self.active_connections.remove(connection)
 
 
 manager = ConnectionManager()
@@ -59,6 +69,7 @@ def get_players(game_id: str, session: Session) -> PlayersMessage:
                 username=user.username,
                 role=assoc.role,
                 online=user.id in online_ids,
+                color=assoc.color,
             )
             for user, assoc in rows
         ]
@@ -76,6 +87,7 @@ def get_ws_players(game_id: str, session: Session) -> WsPlayersMessage:
                 role=assoc.role,
                 online=user.id in conns,
                 ping_ms=conns[user.id].ping_ms if user.id in conns else None,
+                color=assoc.color,
             )
             for user, assoc in rows
         ]
