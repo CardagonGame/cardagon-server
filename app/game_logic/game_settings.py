@@ -1,3 +1,4 @@
+# WIP: domain model, not yet wired into the API
 from app.dto import BaseDTO
 
 class GameSettings(BaseDTO):

@@ -6,3 +6,8 @@ __pycache__
 *.db
 
 .idea
+
+.env
+.env.*
+!.env.*.example
+.venv

@@ -1,6 +1,9 @@
+import uuid
+
 import distinctipy
 from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from app.dependencies.colors import hex_to_rgb, rgb_to_hex
 from app.dependencies.db import SessionDep
@@ -176,9 +179,16 @@ def create_game(session: SessionDep, user: CurrentUserDep) -> GamePublic:
     """
     Create a new game.
     """
-    new_game = Game()
-    session.add(new_game)
-    session.flush()
+    for _ in range(5):
+        new_game = Game(join_code=str(uuid.uuid4())[:6].upper())
+        try:
+            session.add(new_game)
+            session.flush()
+            break
+        except IntegrityError:
+            session.rollback()
+    else:
+        raise HTTPException(status_code=500, detail="Could not generate a unique join code")
 
     new_game_association = UserGameAssociation(
         user_id=user.id,

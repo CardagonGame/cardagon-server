@@ -1,7 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.dependencies import security
 
@@ -11,12 +13,13 @@ from app.dependencies.user import create_user, get_user_by_email, user_authentic
 from app.dto.user import Token, UserCreate, UserPublic, UserRegister
 from app.settings import settings
 
-
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["auth"])
 
 
 @router.post(f"{API_V1_PREFIX}/register")
-def register_user(session: SessionDep, user_in: UserRegister) -> UserPublic:
+@limiter.limit("5/minute")
+def register_user(request: Request, session: SessionDep, user_in: UserRegister) -> UserPublic:
     if user_in.invite_token != settings.INVITE_TOKEN:
         raise HTTPException(status_code=400, detail="Invalid invite code")
     user = get_user_by_email(session=session, email=user_in.email)
@@ -39,8 +42,11 @@ def register_user(session: SessionDep, user_in: UserRegister) -> UserPublic:
 
 
 @router.post(f"{API_V1_PREFIX}/login")
+@limiter.limit("10/minute")
 def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    request: Request,
+    session: SessionDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
     """
     OAuth2 compatible token login, get an access token for future requests

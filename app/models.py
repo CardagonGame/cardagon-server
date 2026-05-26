@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from coolname import generate_slug
-from sqlalchemy import CHAR, ForeignKey, Integer, MetaData, String
+from sqlalchemy import CHAR, ForeignKey, Index, Integer, MetaData, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -49,6 +49,10 @@ class Game(Base):
 
 class GameEvent(Base):
     __tablename__ = "game_events"
+    __table_args__ = (
+        UniqueConstraint("game_id", "sequence_number", name="uq_game_events_game_seq"),
+        Index("ix_game_events_game_id", "game_id"),
+    )
     id: Mapped[str] = mapped_column(
         CHAR(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )
@@ -85,6 +89,9 @@ class GameEvent(Base):
 
 class UserGameAssociation(Base):
     __tablename__ = "user_game_associations"
+    __table_args__ = (
+        UniqueConstraint("user_id", "game_id", name="uq_user_game_associations_user_game"),
+    )
     id: Mapped[str] = mapped_column(
         CHAR(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )

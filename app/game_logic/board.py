@@ -1,3 +1,4 @@
+# WIP: domain model, not yet wired into the API
 import random
 
 from app.game_logic.hex import Hex, hex_distance

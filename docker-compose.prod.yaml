@@ -5,9 +5,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DB_CONNECTION_STRING: postgresql://cardagon:5RcBPgUL2IbKYGuE@cardagon-postgres-prod:5432/cardagondb
-      INVITE_TOKEN: DEV_INVITE_TOKEN
-      SECRET_KEY: 12725da8f93b82fc1bd1da275b49a8fe
+      DB_CONNECTION_STRING: postgresql://cardagon:${POSTGRES_PASSWORD}@cardagon-postgres-prod:5432/cardagondb
+      INVITE_TOKEN: ${INVITE_TOKEN}
+      SECRET_KEY: ${SECRET_KEY}
     depends_on:
       - cardagon-postgres-prod
 
@@ -15,7 +15,7 @@ services:
     image: postgres:18
     container_name: cardagon-postgres-prod
     environment:
-      POSTGRES_PASSWORD: 5RcBPgUL2IbKYGuE
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: cardagon
       POSTGRES_DB: cardagondb
     ports:

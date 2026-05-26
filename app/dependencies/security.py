@@ -1,10 +1,9 @@
-from datetime import datetime, timedelta
-from typing import Annotated
+from datetime import datetime, timedelta, timezone
 
 from app.dependencies.static import API_V1_PREFIX
 import jwt
 
-from fastapi.security import OAuth2AuthorizationCodeBearer, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
 from app.models import User
@@ -30,6 +29,6 @@ def create_access_token(*, user: User):
         "sub": user.username,
         "id": str(user.id),
     }
-    expire = datetime.now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     encode.update({"exp": expire})
     return jwt.encode(encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
