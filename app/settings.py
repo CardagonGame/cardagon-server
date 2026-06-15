@@ -1,11 +1,17 @@
+import os
 import tomllib
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
 
-_project = tomllib.loads(Path("pyproject.toml").read_text())
-PROJECT_NAME: str = _project["project"]["name"]
-PROJECT_VERSION: str = _project["project"]["version"]
+try:
+    _pyproject_path = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    _project = tomllib.loads(_pyproject_path.read_text())["project"]
+    PROJECT_NAME: str = _project["name"]
+    PROJECT_VERSION: str = _project["version"]
+except (FileNotFoundError, tomllib.TOMLDecodeError, KeyError):
+    PROJECT_NAME = os.getenv("PROJECT_NAME", "unknown")
+    PROJECT_VERSION = os.getenv("PROJECT_VERSION", "unknown")
 
 
 class Settings(BaseSettings):
