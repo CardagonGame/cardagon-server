@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import Field
 
 from . import BaseDTO
 
@@ -24,7 +24,7 @@ class UserRegister(BaseDTO):
     email: str = Field(max_length=255)
     username: str = Field(max_length=50)
     password: str = Field(min_length=8, max_length=255)
-    invite_token: str | None
+    invite_token: str
 
 
 class Token(BaseDTO):

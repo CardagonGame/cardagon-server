@@ -1,3 +1,4 @@
+# WIP: domain model, not yet wired into the API
 from app.game_logic.board import Board
 from app.game_logic.game_settings import GameSettings
 

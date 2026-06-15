@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, WebSocket
+from fastapi import APIRouter, HTTPException, WebSocket
 
 from app.dependencies.db import SessionDep
 from app.dependencies.game_logic import run_game_websocket
@@ -14,8 +14,11 @@ async def game_websocket_endpoint(
     websocket: WebSocket,
     game_id: str,
     session: SessionDep,
-    token: str = Query(...),
 ):
+    # Authenticate before accepting the socket so unauthenticated clients
+    # never get an open connection. The token is passed as a query param
+    # (WS .../ws?token=...).
+    token = websocket.query_params.get("token", "")
     try:
         user = get_current_user(session=session, token=token)
     except HTTPException:
@@ -34,4 +37,5 @@ async def game_websocket_endpoint(
         await websocket.close(code=4003)
         return
 
+    await websocket.accept()
     await run_game_websocket(websocket, game_id, user, association, session)

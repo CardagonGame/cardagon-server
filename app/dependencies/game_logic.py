@@ -1,3 +1,5 @@
+import json
+
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic_core import from_json
 from sqlalchemy import func
@@ -21,8 +23,7 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: list[UserConnection] = []
 
-    async def connect(self, user_connection: UserConnection):
-        await user_connection.websocket.accept()
+    def connect(self, user_connection: UserConnection):
         self.active_connections.append(user_connection)
 
     def disconnect(self, user_connection: UserConnection):
@@ -31,8 +32,9 @@ class ConnectionManager:
     async def send_personal_message(self, message: str, user_connection: UserConnection):
         try:
             await user_connection.websocket.send_text(message)
-        except RuntimeError:
-            self.active_connections.remove(user_connection)
+        except (RuntimeError, WebSocketDisconnect):
+            if user_connection in self.active_connections:
+                self.active_connections.remove(user_connection)
 
     async def broadcast(self, game_id: str, message: str):
         dead = []
@@ -40,7 +42,7 @@ class ConnectionManager:
             if connection.game_id == game_id:
                 try:
                     await connection.websocket.send_text(message)
-                except RuntimeError:
+                except (RuntimeError, WebSocketDisconnect):
                     dead.append(connection)
         for connection in dead:
             if connection in self.active_connections:
@@ -59,34 +61,30 @@ def _fetch_player_rows(game_id: str, session: Session):
     )
 
 
-def get_players(game_id: str, session: Session) -> PlayersMessage:
+def get_players(game_id: str, session: Session, include_ping: bool = False) -> PlayersMessage | WsPlayersMessage:
     rows = _fetch_player_rows(game_id, session)
-    online_ids = {c.user_id for c in manager.active_connections if c.game_id == game_id}
+    conns = {c.user_id: c for c in manager.active_connections if c.game_id == game_id}
+    if include_ping:
+        return WsPlayersMessage(
+            players=[
+                WsPlayerInfo(
+                    user_id=user.id,
+                    username=user.username,
+                    role=assoc.role,
+                    online=user.id in conns,
+                    ping_ms=conns[user.id].ping_ms if user.id in conns else None,
+                    color=assoc.color,
+                )
+                for user, assoc in rows
+            ]
+        )
     return PlayersMessage(
         players=[
             PlayerInfo(
                 user_id=user.id,
                 username=user.username,
                 role=assoc.role,
-                online=user.id in online_ids,
-                color=assoc.color,
-            )
-            for user, assoc in rows
-        ]
-    )
-
-
-def get_ws_players(game_id: str, session: Session) -> WsPlayersMessage:
-    rows = _fetch_player_rows(game_id, session)
-    conns = {c.user_id: c for c in manager.active_connections if c.game_id == game_id}
-    return WsPlayersMessage(
-        players=[
-            WsPlayerInfo(
-                user_id=user.id,
-                username=user.username,
-                role=assoc.role,
                 online=user.id in conns,
-                ping_ms=conns[user.id].ping_ms if user.id in conns else None,
                 color=assoc.color,
             )
             for user, assoc in rows
@@ -127,7 +125,7 @@ async def run_game_websocket(
         game_id=game_id,
         websocket=websocket,
     )
-    await manager.connect(user_connection)
+    manager.connect(user_connection)
     events = (
         session.query(GameEvent)
         .filter(GameEvent.game_id == game_id)
@@ -137,7 +135,7 @@ async def run_game_websocket(
     await manager.send_personal_message(
         build_game_state(events).model_dump_json(), user_connection
     )
-    await manager.broadcast(game_id, get_ws_players(game_id, session).model_dump_json())
+    await manager.broadcast(game_id, get_players(game_id, session, include_ping=True).model_dump_json())
     try:
         while True:
             data = await websocket.receive_text()
@@ -153,11 +151,11 @@ async def run_game_websocket(
                     if isinstance(ms, int):
                         user_connection.ping_ms = ms
                         await manager.broadcast(
-                            game_id, get_ws_players(game_id, session).model_dump_json()
+                            game_id, get_players(game_id, session, include_ping=True).model_dump_json()
                         )
                 case "ready":
                     await manager.send_personal_message(
-                        "You are ready!",
+                        '{"type":"ready_ack"}',
                         user_connection,
                     )
                 case "game_start":
@@ -203,7 +201,7 @@ async def run_game_websocket(
                         positions = generate_start_positions(field_size, len(player_ids))
                     except ValueError as exc:
                         await manager.send_personal_message(
-                            f'{{"type":"error","message":"{exc}"}}',
+                            json.dumps({"type": "error", "message": str(exc)}),
                             user_connection,
                         )
                         continue
@@ -237,8 +235,10 @@ async def run_game_websocket(
                     session.commit()
                     await manager.broadcast(game_id, '{"type":"game_start"}')
     except WebSocketDisconnect:
+        pass
+    finally:
         manager.disconnect(user_connection)
         await manager.broadcast(
             game_id,
-            get_ws_players(game_id, session).model_dump_json(),
+            get_players(game_id, session, include_ping=True).model_dump_json(),
         )
