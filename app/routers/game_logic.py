@@ -1,7 +1,4 @@
-import asyncio
-
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic_core import from_json
+from fastapi import APIRouter, HTTPException, WebSocket
 
 from app.dependencies.db import SessionDep
 from app.dependencies.game_logic import run_game_websocket
@@ -11,8 +8,6 @@ from app.models import UserGameAssociation
 
 router = APIRouter(tags=["game_router"])
 
-_AUTH_TIMEOUT_SECONDS = 10
-
 
 @router.websocket(f"{API_V1_PREFIX}/game/{{game_id}}/ws")
 async def game_websocket_endpoint(
@@ -20,19 +15,10 @@ async def game_websocket_endpoint(
     game_id: str,
     session: SessionDep,
 ):
-    await websocket.accept()
-
-    try:
-        raw = await asyncio.wait_for(websocket.receive_text(), timeout=_AUTH_TIMEOUT_SECONDS)
-        data = from_json(raw)
-        if data.get("type") != "auth":
-            await websocket.close(code=4003)
-            return
-        token = data.get("token", "")
-    except (asyncio.TimeoutError, WebSocketDisconnect):
-        await websocket.close(code=4003)
-        return
-
+    # Authenticate before accepting the socket so unauthenticated clients
+    # never get an open connection. The token is passed as a query param
+    # (WS .../ws?token=...).
+    token = websocket.query_params.get("token", "")
     try:
         user = get_current_user(session=session, token=token)
     except HTTPException:
@@ -51,4 +37,5 @@ async def game_websocket_endpoint(
         await websocket.close(code=4003)
         return
 
+    await websocket.accept()
     await run_game_websocket(websocket, game_id, user, association, session)
