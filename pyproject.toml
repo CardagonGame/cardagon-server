@@ -2,7 +2,7 @@
 name = "cardagon-server"
 version = "1.0.0"
 dependencies = [
-  "fastapi[standard]==0.136.3",
+  "fastapi[standard]==0.141.1",
   "sqlalchemy==2.0.50",
   "pydantic-settings==2.14.1",
   "passlib==1.7.4",
