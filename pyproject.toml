@@ -8,7 +8,7 @@ dependencies = [
   "passlib==1.7.4",
   "pyjwt==2.13.0",
   "psycopg2-binary==2.9.12",
-  "alembic==1.18.4",
+  "alembic==1.19.2",
   "argon2_cffi==25.1.0",
   "coolname==5.0.0",
   "distinctipy",
