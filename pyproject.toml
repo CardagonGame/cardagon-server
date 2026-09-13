@@ -7,7 +7,7 @@ dependencies = [
   "pydantic-settings==2.14.1",
   "passlib==1.7.4",
   "pyjwt==2.13.0",
-  "psycopg2-binary==2.9.12",
+  "psycopg2-binary==2.9.13",
   "alembic==1.18.4",
   "argon2_cffi==25.1.0",
   "coolname==5.0.0",
